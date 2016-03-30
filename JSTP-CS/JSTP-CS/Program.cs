@@ -1,12 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Jint;
 
-namespace JSTP_CS {
-	class Program {
-		static void Main(string[] args) {
-		}
-	}
+namespace JSTP_CS
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            var add = new Engine().Execute("function add(a, b) { return a + b; }").GetValue("add");
+        
+            add.Invoke(1, 2);
+        }
+    }
 }
