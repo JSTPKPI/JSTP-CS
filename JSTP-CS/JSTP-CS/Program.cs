@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using Jint;
+//using Jint;
 
 namespace JSTP_CS
 {
@@ -8,9 +8,10 @@ namespace JSTP_CS
     {
         static void Main(string[] args)
         {
-            var add = new Engine().Execute("function add(a, b) { return a + b; }").GetValue("add");
-        
-            add.Invoke(1, 2);
+            string fileName = @"D:\root\KPI\JSTP-CS\JSTP-CS\parse.txt";
+            Parse parse = new Parse();
+            parse.RSParse(fileName);     
+
         }
     }
 }
