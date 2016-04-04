@@ -121,7 +121,7 @@ namespace Jstp.Rs {
 				}
 
 				c = data[index++];
-				if (c == '"') {
+				if (c == '"' || c == '\'') {
 					complete = true;
 					break;
 				}
@@ -261,6 +261,7 @@ namespace Jstp.Rs {
 			}
 
 			if (sb.Length != 0 && complete) {
+				index--;
 				return sb.ToString();
 			} else {
 				return null; // throw new JSRSFormatException();
@@ -298,6 +299,7 @@ namespace Jstp.Rs {
 				case '}':
 					return Token.TCurlyClose;
 				case '"':
+				case '\'':
 					return Token.TString;
 				case ',':
 					return Token.TComma;
@@ -328,6 +330,10 @@ namespace Jstp.Rs {
 			}
 
 			// TODO: implement key token check
+			if (char.IsLetter(data[index])) {
+
+				return Token.TKey;
+			}
 
 			return Token.TNone;
 		}
