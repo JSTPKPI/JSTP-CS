@@ -6,16 +6,19 @@ using System.Threading.Tasks;
 
 namespace Jstp.Rs {
 	enum Token : byte {
-		TString		= 0,
-		TKey		= 1,
-		TNumber		= 2,
-		TCurlyOpen	= 3,
-		TCurlyClose = 4,
-		TTrue		= 5,
-		TFalse		= 6,
-		TColon		= 7,
-		TComma		= 8,
-		TNull		= 9,
-		TNone		= 10
+		TString		  = 0,
+		TKey		  = 1,
+		TNumber		  = 2,
+		TCurlyOpen	  = 3,
+		TCurlyClose	  = 4,
+		TBracketOpen  = 5,
+		TBracketClose = 6,
+		TTrue		  = 7,
+		TFalse		  = 8,
+		TColon		  = 9,
+		TComma		  = 10,
+		TNull		  = 11,
+		TComment	  = 12,
+		TUndefined		  = 13
 	}
 }

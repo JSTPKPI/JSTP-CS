@@ -6,49 +6,56 @@ namespace Jstp.Rs {
 	/// Static class for parsing Record Serialization.
 	/// </summary>
 	public static class JSRS {
+
+		private static char[] data;
+
 		// Default capacity for StringBuilder
 		private static readonly int DEFAULT_CAPACITY = 20;
 
 		/// <summary>
 		/// Parses Record Seralization data.
 		/// </summary>
-		/// <param name="data"></param>
+		/// <param name="dataToParse"></param>
 		/// <returns></returns>
-		public static object Parse(string data) {
+		public static object Parse(string dataToParse) {
 			if (data != null) {
-				char[] charArray = data.ToCharArray();
+				char[] data = RemoveComment(dataToParse).ToCharArray();
 				int index = 0;
-				object value = ParseValue(charArray, ref index); 
+				object value = ParseValue(ref index); 
 				return value;
 			} else {
 				return null; //throw new JSRSFormatException();
 			}
 		}
 
+		private static string RemoveComment(string dataToParse) {
+			// TODO: remove comment and whitespaces
+			return null;
+		}
+
 		/// <summary>
 		/// Determines next token type and parses it.
 		/// </summary>
-		/// <param name="data"></param>
 		/// <param name="index"></param>
 		/// <returns></returns>
-		private static object ParseValue(char[] data, ref int index) {
-			switch(LookAhead(data, index)) {
+		private static object ParseValue(ref int index) {
+			switch(LookAhead(index)) {
 				case Token.TCurlyOpen:
-					return ParseObject(data, ref index);
+					return ParseObject(ref index);
 				case Token.TString:
-					return ParseString(data, ref index);
+					return ParseString(ref index);
 				case Token.TNumber:
-					return ParseNumber(data, ref index);
+					return ParseNumber(ref index);
 				case Token.TTrue:
-					NextToken(data, ref index);
+					NextToken(ref index);
 					return true;
 				case Token.TFalse:
-					NextToken(data, ref index);
+					NextToken(ref index);
 					return false;
 				case Token.TNull:
-					NextToken(data, ref index);
+					NextToken(ref index);
 					return null;
-				case Token.TNone:
+				case Token.TUndefined:
 					return null; // throw new JSRSFormatException();
 			}
 
@@ -58,13 +65,11 @@ namespace Jstp.Rs {
 		/// <summary>
 		/// Parses data to number.
 		/// </summary>
-		/// <param name="data"></param>
 		/// <param name="index"></param>
 		/// <returns></returns>
-		private static double ParseNumber(char[] data, ref int index) {
-			SkipWhitespace(data, ref index);
+		private static double ParseNumber(ref int index) {
 
-			int lastIndex = getIndexOfLastDigit(data, index);
+			int lastIndex = getIndexOfLastDigit(index);
 			int numberLength = lastIndex - index + 1;
 
 			double number;
@@ -84,10 +89,9 @@ namespace Jstp.Rs {
 		/// <summary>
 		/// Searches for the last index of the number.
 		/// </summary>
-		/// <param name="data"></param>
 		/// <param name="index"></param>
 		/// <returns>Last index</returns>
-		private static int getIndexOfLastDigit(char[] data, int index) {
+		private static int getIndexOfLastDigit(int index) {
 			int lastIndex = index;
 			string numbs = "0123456789+-.eE";
 			for(;lastIndex < data.Length; lastIndex++) {
@@ -101,14 +105,11 @@ namespace Jstp.Rs {
 		/// <summary>
 		/// Parses data to string
 		/// </summary>
-		/// <param name="data"></param>
 		/// <param name="index"></param>
 		/// <returns></returns>
-		private static object ParseString(char[] data, ref int index) {
+		private static object ParseString(ref int index) {
 			StringBuilder s = new StringBuilder(DEFAULT_CAPACITY);
 			char c;
-
-			SkipWhitespace(data, ref index);
 
 			// "
 			c = data[index++];
@@ -193,38 +194,37 @@ namespace Jstp.Rs {
 		/// <summary>
 		/// Parses data to object(Dictionary&lt;string, object&gt;).
 		/// </summary>
-		/// <param name="data"></param>
 		/// <param name="index"></param>
 		/// <returns></returns>
-		private static object ParseObject(char[] data, ref int index) {
+		private static object ParseObject(ref int index) {
 			Dictionary<string, object> obj = new Dictionary<string, object>();
 			Token token;
 			
 			// Skipes "{"
-			NextToken(data, ref index);
+			NextToken(ref index);
 
 			while (true) {
-				token = LookAhead(data, index);
-				if(token == Token.TNone) {
+				token = LookAhead(index);
+				if(token == Token.TUndefined) {
 					return null;  // throw new JSRSFormatException();
 				} else if(token == Token.TComma) {
-					NextToken(data, ref index);
+					NextToken(ref index);
 				} else if(token == Token.TCurlyClose) {
-					NextToken(data, ref index);
+					NextToken(ref index);
 					return obj;
 				} else {
 
 					// Parses key
-					string key = ParseKey(data, ref index);
+					string key = ParseKey(ref index);
 
 					// :
-					token = NextToken(data, ref index);
+					token = NextToken(ref index);
 					if(token != Token.TColon) {
 						return null; // throw new JSRSFormatException();
 					}
 
 					// Parses Value
-					object value = ParseValue(data, ref index);
+					object value = ParseValue(ref index);
 
 
 					obj[key] = value;
@@ -235,14 +235,11 @@ namespace Jstp.Rs {
 		/// <summary>
 		/// Parses data to key(string).
 		/// </summary>
-		/// <param name="data"></param>
 		/// <param name="index"></param>
 		/// <returns></returns>
-		private static string ParseKey(char[] data, ref int index) {
+		private static string ParseKey(ref int index) {
 			StringBuilder sb = new StringBuilder(DEFAULT_CAPACITY);
 			char c;
-
-			SkipWhitespace(data, ref index);
 
 			c = data[index++];
 			bool complete = false;
@@ -269,27 +266,35 @@ namespace Jstp.Rs {
 		}
 
 		/// <summary>
-		/// Checks next token without moving index(cursor).
+		/// 
 		/// </summary>
-		/// <param name="data"></param>
 		/// <param name="index"></param>
 		/// <returns></returns>
-		private static Token LookAhead(char[] data, int index) {
+		private static object[] ParseArray(ref int index) {
+			NextToken(ref index);
+
+			return null;
+		}
+
+		/// <summary>
+		/// Checks next token without moving index(cursor).
+		/// </summary>
+		/// <param name="index"></param>
+		/// <returns></returns>
+		private static Token LookAhead(int index) {
 			int saveIndex = index;
-			return NextToken(data, ref saveIndex);
+			return NextToken(ref saveIndex);
 		}
 
 		/// <summary>
 		/// Checks next token.
 		/// </summary>
-		/// <param name="data"></param>
 		/// <param name="index"></param>
 		/// <returns></returns>
-		private static Token NextToken(char[] data, ref int index) {
-			SkipWhitespace(data, ref index);
+		private static Token NextToken(ref int index) {
 
 			if (index == data.Length)
-				return Token.TNone;
+				return Token.TUndefined;
 
 			char c = data[index];
 			index++;
@@ -314,17 +319,17 @@ namespace Jstp.Rs {
 
 			int remainingLength = data.Length - index;
 
-			if(IsTFalse(data, remainingLength, index)) {
+			if(IsTFalse(remainingLength, index)) {
 				index += 5;
 				return Token.TFalse;
 			}
 
-			if(IsTTrue(data, remainingLength, index)) {
+			if(IsTTrue(remainingLength, index)) {
 				index += 4;
 				return Token.TFalse;
 			}
 
-			if(IsTNull(data, remainingLength, index)) {
+			if(IsTNull(remainingLength, index)) {
 				index += 4;
 				return Token.TNull;
 			}
@@ -335,17 +340,16 @@ namespace Jstp.Rs {
 				return Token.TKey;
 			}
 
-			return Token.TNone;
+			return Token.TUndefined;
 		}
 
 		/// <summary>
 		/// Checks whether token is 'false'.
 		/// </summary>
-		/// <param name="data"></param>
 		/// <param name="remainingLength"></param>
 		/// <param name="index"></param>
 		/// <returns></returns>
-		private static bool IsTFalse(char[] data, int remainingLength, int index) {
+		private static bool IsTFalse(int remainingLength, int index) {
 			if(remainingLength >= 5) {
 				if(	data[index]	  == 'f' &&
 					data[index+1] == 'a' &&
@@ -362,11 +366,10 @@ namespace Jstp.Rs {
 		/// <summary>
 		/// Checks whether next token is 'true'.
 		/// </summary>
-		/// <param name="data"></param>
 		/// <param name="remainingLength"></param>
 		/// <param name="index"></param>
 		/// <returns></returns>
-		private static bool IsTTrue(char[] data, int remainingLength, int index) {
+		private static bool IsTTrue(int remainingLength, int index) {
 			if (remainingLength >= 4) {
 				if (data[index] == 't' &&
 					data[index + 1] == 'r' &&
@@ -382,11 +385,10 @@ namespace Jstp.Rs {
 		/// <summary>
 		/// Checks whether next token is 'null'
 		/// </summary>
-		/// <param name="data"></param>
 		/// <param name="remainingLength"></param>
 		/// <param name="index"></param>
 		/// <returns></returns>
-		private static bool IsTNull(char[] data, int remainingLength, int index) {
+		private static bool IsTNull(int remainingLength, int index) {
 			if (remainingLength >= 4) {
 				if (data[index] == 'n' &&
 					data[index + 1] == 'u' &&
@@ -397,20 +399,6 @@ namespace Jstp.Rs {
 			}
 
 			return false;
-		}
-
-		/// <summary>
-		/// Skips all whitespaces from index to next token.
-		/// </summary>
-		/// <param name="data"></param>
-		/// <param name="index"></param>
-		private static void SkipWhitespace(char[] data, ref int index) {
-			string whiteSpaces = " \t\n\r";
-			for (; index < data.Length; index++) {
-				if(whiteSpaces.IndexOf(data[index]) == -1){
-					break;
-				}
-			}
 		}
 	}
 }
