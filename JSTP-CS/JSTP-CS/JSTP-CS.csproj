@@ -53,6 +53,15 @@
     <Compile Include="JSTP\Record Serialization\JSRS.cs" />
     <Compile Include="JSTP\Record Serialization\Token.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Types\JSArray.cs" />
+    <Compile Include="Types\JSBool.cs" />
+    <Compile Include="Types\JSNull.cs" />
+    <Compile Include="Types\JSNumber.cs" />
+    <Compile Include="Types\JSObject.cs" />
+    <Compile Include="Types\JSString.cs" />
+    <Compile Include="Types\JSType.cs" />
+    <Compile Include="Types\JSUndefined.cs" />
+    <Compile Include="Types\JSValue.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

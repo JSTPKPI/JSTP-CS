@@ -19,6 +19,6 @@ namespace Jstp.Rs {
 		TComma		  = 10,
 		TNull		  = 11,
 		TComment	  = 12,
-		TUndefined		  = 13
+		TUndefined	  = 13
 	}
 }
