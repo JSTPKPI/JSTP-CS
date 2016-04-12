@@ -7,13 +7,9 @@ namespace Jstp.Rs {
 	/// <summary>
 	/// Static class for parsing Record Serialization.
 	/// </summary>
-	static class JSRS {
-
+	public static class JSRS {
 		private static char[] data;
-
-		// Default capacity for StringBuilder
-		private static readonly int DEFAULT_CAPACITY = 20;
-
+	
 		/// <summary>
 		/// Parses Record Seralization data.
 		/// </summary>
@@ -89,7 +85,7 @@ namespace Jstp.Rs {
 		/// <param name="index"></param>
 		/// <returns></returns>
 		private static JSValue ParseString(ref int index) {
-			StringBuilder s = new StringBuilder(DEFAULT_CAPACITY);
+			StringBuilder s = new StringBuilder(20);
 			char c;
 
 			char stringStart = data[index++]; 
@@ -208,7 +204,7 @@ namespace Jstp.Rs {
 		/// <param name="index"></param>
 		/// <returns></returns>
 		private static string ParseKey(ref int index) {
-			StringBuilder sb = new StringBuilder(DEFAULT_CAPACITY);
+			StringBuilder sb = new StringBuilder(20);
 			char c;
 
 			c = data[index++];
@@ -241,37 +237,6 @@ namespace Jstp.Rs {
 		/// <param name="index"></param>
 		/// <returns></returns>
 		private static JSValue ParseArray(ref int index) {
-			// Skip [
-			JSArray array = new JSArray();
-
-			Token prevToken = NextToken(ref index);
-
-			Token curToken = LookAhead(index);
-
-			if(curToken == Token.TBracketClose) {
-				array.Add(new JSUndefined());
-				return array;
-			}
-
-			while (true) {
-				if (curToken == Token.TComma) {
-					array.Add(new JSUndefined());
-				}
-				else {
-					array.Add(ParseValue(ref index));
-
-					curToken = NextToken(ref index);
-
-					if (curToken == Token.TBracketClose) {
-						break;
-					}
-					else if (curToken != Token.TComma) {
-						return new JSUndefined();
-					}
-				}
-
-			} 
-
 			return null;
 		}
 

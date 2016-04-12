@@ -1,12 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿namespace Jstp.Types {
+	/// <summary> Represents JavaScript undefined type. </summary>
+	public class JSUndefined: JSValue{
 
-namespace Jstp.Types {
-	class JSUndefined: JSValue{
+		/// <summary> Initializes a new instance of the Jstp.Types.JSUndefined class. </summary>
+		public JSUndefined() {
+			type = JSTypes.JSUndefined;
+		}
 
+		/// <summary> Returns "undefined" string. </summary>
 		public override string ToString() {
 			return "undefined";
 		}

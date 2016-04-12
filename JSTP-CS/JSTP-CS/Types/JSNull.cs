@@ -1,12 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿namespace Jstp.Types {
+	/// <summary> Represents JavaScript null type. </summary>
+	public class JSNull: JSValue {
 
-namespace Jstp.Types {
-	class JSNull: JSValue {
+		/// <summary> Initializes a new instance of the Jstp.Types.JSNull class. </summary>
+		public JSNull() {
+			type = JSTypes.JSNull;
+		}
 
+		/// <summary> Returns "null" string. </summary>
 		public override string ToString() {
 			return "null";
 		}
