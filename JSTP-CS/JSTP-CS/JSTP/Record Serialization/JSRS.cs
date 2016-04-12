@@ -1,29 +1,40 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Text;
 
 using Jstp.Types;
 
 namespace Jstp.Rs {
-	/// <summary>
-	/// Static class for parsing Record Serialization.
-	/// </summary>
+	/// <summary> Static class for parsing Record Serialization. </summary>
 	public static class JSRS {
 		private static char[] data;
-	
-		/// <summary>
-		/// Parses Record Seralization data.
-		/// </summary>
+
+		/// <summary> Parses Record Seralization data. </summary>
 		/// <param name="dataToParse"></param>
 		/// <returns></returns>
 		public static JSValue Parse(string dataToParse) {
-			if (data != null) {
+			try {
+				if (dataToParse == null) {
+					throw new ArgumentNullException("Data which required to be parsed is null!");
+				}
+
 				char[] data = RemoveComment(dataToParse).ToCharArray();
 				int index = 0;
-				JSValue value = ParseValue(ref index); 
+
+				JSValue value = ParseValue(ref index);
+
 				return value;
-			} else {
-				return new JSUndefined();
 			}
+
+			catch (ArgumentNullException ex) {
+				Console.WriteLine(ex);
+			}
+
+			catch (JSRSFormatException ex) {
+				Console.WriteLine(ex);
+			}
+
+			return new JSUndefined();
 		}
 
 		/// <summary>
@@ -32,7 +43,7 @@ namespace Jstp.Rs {
 		/// <param name="index"></param>
 		/// <returns></returns>
 		private static JSValue ParseValue(ref int index) {
-			switch(LookAhead(index)) {
+			switch (LookAhead(index)) {
 				case Token.TCurlyOpen:
 					return ParseObject(ref index);
 				case Token.TString:
@@ -56,7 +67,7 @@ namespace Jstp.Rs {
 		}
 
 		/// <summary>
-		/// Parses data to number.
+		/// Parses data to JSNumber.
 		/// </summary>
 		/// <param name="index"></param>
 		/// <returns></returns>
@@ -66,21 +77,24 @@ namespace Jstp.Rs {
 			int numberLength = lastIndex - index + 1;
 
 			double number;
-			if(double.TryParse(new string(data, index, numberLength), 
+
+			if (double.TryParse(new string(data, index, numberLength),
 				System.Globalization.NumberStyles.Any,
 				System.Globalization.CultureInfo.InvariantCulture,
 				out number)) {
 
 				index += numberLength;
 				return new JSNumber(number);
-			} else {
-				return new JSUndefined();
 			}
-			
+
+			else {
+				throw new JSRSFormatException();
+			}
+
 		}
 
 		/// <summary>
-		/// Parses data to string
+		/// Parses data to JSString
 		/// </summary>
 		/// <param name="index"></param>
 		/// <returns></returns>
@@ -88,7 +102,7 @@ namespace Jstp.Rs {
 			StringBuilder s = new StringBuilder(20);
 			char c;
 
-			char stringStart = data[index++]; 
+			char stringStart = data[index++];
 
 			bool complete = false;
 			while (!complete) {
@@ -98,15 +112,20 @@ namespace Jstp.Rs {
 				}
 
 				c = data[index++];
+
+				// end of the string
 				if (c == stringStart) {
 					complete = true;
 					break;
 				}
+
+				#region Control character
 				else if (c == '\\') {
 
 					if (index == data.Length) {
 						break;
 					}
+
 					c = data[index++];
 					switch (c) {
 						case '"':
@@ -115,7 +134,7 @@ namespace Jstp.Rs {
 						case '\\':
 							s.Append('\\');
 							break;
-						case '/': 
+						case '/':
 							s.Append('/');
 							break;
 						case 'b':
@@ -134,15 +153,19 @@ namespace Jstp.Rs {
 							s.Append('\t');
 							break;
 						case 'u':
-							if(tryParseUnicode(index, s)) {
+							// Unicode characters
+							if (tryParseUnicode(index, s)) {
 								index += 4;
 							}
 							else {
-								return new JSUndefined();
+								throw new JSRSFormatException();
 							}
 							break;
 					}
 				}
+				#endregion
+
+				// any other character
 				else {
 					s.Append(c);
 				}
@@ -150,14 +173,14 @@ namespace Jstp.Rs {
 			}
 
 			if (!complete) {
-				return new JSUndefined();  // throw new JSRSFormatExceptino()
+				throw new JSRSFormatException();
 			}
 
 			return new JSString(s.ToString());
 		}
 
 		/// <summary>
-		/// Parses data to object(Dictionary&lt;string, object&gt;).
+		/// Parses data to JSObject.
 		/// </summary>
 		/// <param name="index"></param>
 		/// <returns></returns>
@@ -166,27 +189,30 @@ namespace Jstp.Rs {
 			Token token;
 
 			JSObject obj = new JSObject();
-			
+
 			// Skipes "{"
 			NextToken(ref index);
 
 			while (true) {
 				token = LookAhead(index);
-				if(token == Token.TUndefined) {
+				if (token == Token.TUndefined) {
 					return new JSUndefined();
-				} else if(token == Token.TComma) {
+				}
+				else if (token == Token.TComma) {
 					NextToken(ref index);
-				} else if(token == Token.TCurlyClose) {
+				}
+				else if (token == Token.TCurlyClose) {
 					NextToken(ref index);
 					return obj;
-				} else {
+				}
+				else {
 
 					// Parses key
 					string key = ParseKey(ref index);
 
 					// :
 					token = NextToken(ref index);
-					if(token != Token.TColon) {
+					if (token != Token.TColon) {
 						return new JSUndefined(); // throw new JSRSFormatException();
 					}
 
@@ -210,14 +236,15 @@ namespace Jstp.Rs {
 			c = data[index++];
 			bool complete = false;
 			while (!complete) {
-				if(index == data.Length) {
+				if (index == data.Length) {
 					break;
 				}
 
 				if (char.IsLetterOrDigit(c)) {
 					sb.Append(c);
 					c = data[index++];
-				} else {
+				}
+				else {
 					complete = true;
 					break;
 				}
@@ -226,19 +253,22 @@ namespace Jstp.Rs {
 			if (sb.Length != 0 && complete) {
 				index--;
 				return sb.ToString();
-			} else {
+			}
+			else {
 				return null; // throw new JSRSFormatException();
 			}
 		}
 
 		/// <summary>
-		/// 
+		/// Parses data to JSArray
 		/// </summary>
 		/// <param name="index"></param>
 		/// <returns></returns>
 		private static JSValue ParseArray(ref int index) {
 			return null;
 		}
+
+		#region Util functions
 
 		/// <summary>
 		/// Checks next token without moving index(cursor).
@@ -272,8 +302,16 @@ namespace Jstp.Rs {
 					return Token.TString;
 				case ',':
 					return Token.TComma;
-				case '0': case '1': case '2': case '3': case '4':
-				case '5': case '6': case '7': case '8': case '9':
+				case '0':
+				case '1':
+				case '2':
+				case '3':
+				case '4':
+				case '5':
+				case '6':
+				case '7':
+				case '8':
+				case '9':
 				case '-':
 					return Token.TNumber;
 				case ':':
@@ -283,17 +321,17 @@ namespace Jstp.Rs {
 
 			int remainingLength = data.Length - index;
 
-			if(IsTFalse(remainingLength, index)) {
+			if (IsTFalse(remainingLength, index)) {
 				index += 5;
 				return Token.TFalse;
 			}
 
-			if(IsTTrue(remainingLength, index)) {
+			if (IsTTrue(remainingLength, index)) {
 				index += 4;
 				return Token.TFalse;
 			}
 
-			if(IsTNull(remainingLength, index)) {
+			if (IsTNull(remainingLength, index)) {
 				index += 4;
 				return Token.TNull;
 			}
@@ -312,6 +350,10 @@ namespace Jstp.Rs {
 			return null;
 		}
 
+		/// <summary> Parses Unicode escape sequence. </summary>
+		/// <param name="index"></param>
+		/// <param name="sb"></param>
+		/// <returns> Returns true if parse was successful</returns>
 		static private bool tryParseUnicode(int index, StringBuilder sb) {
 			int remainingLength = data.Length - index;
 
@@ -357,12 +399,12 @@ namespace Jstp.Rs {
 		/// <param name="index"></param>
 		/// <returns></returns>
 		private static bool IsTFalse(int remainingLength, int index) {
-			if(remainingLength >= 5) {
-				if(	data[index]	  == 'f' &&
-					data[index+1] == 'a' &&
-					data[index+2] == 'l' &&
-					data[index+3] == 's' &&
-					data[index+4] == 'e') {
+			if (remainingLength >= 5) {
+				if (data[index] == 'f' &&
+					data[index + 1] == 'a' &&
+					data[index + 2] == 'l' &&
+					data[index + 3] == 's' &&
+					data[index + 4] == 'e') {
 					return true;
 				}
 			}
@@ -407,5 +449,7 @@ namespace Jstp.Rs {
 
 			return false;
 		}
+
+		#endregion
 	}
 }

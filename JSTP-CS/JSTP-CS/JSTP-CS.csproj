@@ -51,6 +51,7 @@
     <Compile Include="JSTP\Record Data\JSRD.cs" />
     <Compile Include="JSTP\Record Metadata\JSRM.cs" />
     <Compile Include="JSTP\Record Serialization\JSRS.cs" />
+    <Compile Include="JSTP\Record Serialization\JSRSFormatException.cs" />
     <Compile Include="JSTP\Record Serialization\Token.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Types\JSArray.cs" />
