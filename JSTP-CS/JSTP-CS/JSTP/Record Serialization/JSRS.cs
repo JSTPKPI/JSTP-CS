@@ -1,11 +1,13 @@
 ﻿using System.Collections.Generic;
 using System.Text;
 
+using Jstp.Types;
+
 namespace Jstp.Rs {
 	/// <summary>
 	/// Static class for parsing Record Serialization.
 	/// </summary>
-	public static class JSRS {
+	static class JSRS {
 
 		private static char[] data;
 
@@ -17,20 +19,15 @@ namespace Jstp.Rs {
 		/// </summary>
 		/// <param name="dataToParse"></param>
 		/// <returns></returns>
-		public static object Parse(string dataToParse) {
+		public static JSValue Parse(string dataToParse) {
 			if (data != null) {
 				char[] data = RemoveComment(dataToParse).ToCharArray();
 				int index = 0;
-				object value = ParseValue(ref index); 
+				JSValue value = ParseValue(ref index); 
 				return value;
 			} else {
-				return null; //throw new JSRSFormatException();
+				return new JSUndefined();
 			}
-		}
-
-		private static string RemoveComment(string dataToParse) {
-			// TODO: remove comment and whitespaces
-			return null;
 		}
 
 		/// <summary>
@@ -38,7 +35,7 @@ namespace Jstp.Rs {
 		/// </summary>
 		/// <param name="index"></param>
 		/// <returns></returns>
-		private static object ParseValue(ref int index) {
+		private static JSValue ParseValue(ref int index) {
 			switch(LookAhead(index)) {
 				case Token.TCurlyOpen:
 					return ParseObject(ref index);
@@ -48,18 +45,18 @@ namespace Jstp.Rs {
 					return ParseNumber(ref index);
 				case Token.TTrue:
 					NextToken(ref index);
-					return true;
+					return new JSBool(true);
 				case Token.TFalse:
 					NextToken(ref index);
-					return false;
+					return new JSBool(false);
 				case Token.TNull:
 					NextToken(ref index);
-					return null;
+					return new JSNull();
 				case Token.TUndefined:
-					return null; // throw new JSRSFormatException();
+					return new JSUndefined();
 			}
 
-			return null;
+			return new JSUndefined();
 		}
 
 		/// <summary>
@@ -67,7 +64,7 @@ namespace Jstp.Rs {
 		/// </summary>
 		/// <param name="index"></param>
 		/// <returns></returns>
-		private static double ParseNumber(ref int index) {
+		private static JSValue ParseNumber(ref int index) {
 
 			int lastIndex = getIndexOfLastDigit(index);
 			int numberLength = lastIndex - index + 1;
@@ -79,27 +76,11 @@ namespace Jstp.Rs {
 				out number)) {
 
 				index += numberLength;
-				return number;
+				return new JSNumber(number);
 			} else {
-				return number; //throw new JSRSFormatException();
+				return new JSUndefined();
 			}
 			
-		}
-
-		/// <summary>
-		/// Searches for the last index of the number.
-		/// </summary>
-		/// <param name="index"></param>
-		/// <returns>Last index</returns>
-		private static int getIndexOfLastDigit(int index) {
-			int lastIndex = index;
-			string numbs = "0123456789+-.eE";
-			for(;lastIndex < data.Length; lastIndex++) {
-				if(numbs.IndexOf(data[lastIndex]) == -1) {
-					break;
-				}
-			}
-			return lastIndex - 1;
 		}
 
 		/// <summary>
@@ -107,12 +88,11 @@ namespace Jstp.Rs {
 		/// </summary>
 		/// <param name="index"></param>
 		/// <returns></returns>
-		private static object ParseString(ref int index) {
+		private static JSValue ParseString(ref int index) {
 			StringBuilder s = new StringBuilder(DEFAULT_CAPACITY);
 			char c;
 
-			// "
-			c = data[index++];
+			char stringStart = data[index++]; 
 
 			bool complete = false;
 			while (!complete) {
@@ -122,7 +102,7 @@ namespace Jstp.Rs {
 				}
 
 				c = data[index++];
-				if (c == '"' || c == '\'') {
+				if (c == stringStart) {
 					complete = true;
 					break;
 				}
@@ -132,51 +112,40 @@ namespace Jstp.Rs {
 						break;
 					}
 					c = data[index++];
-
-					if (c == '"') {
-						s.Append('"');
-					}
-					else if (c == '\\') {
-						s.Append('\\');
-					}
-					else if (c == '/') {
-						s.Append('/');
-					}
-					else if (c == 'b') {
-						s.Append('\b');
-					}
-					else if (c == 'f') {
-						s.Append('\f');
-					}
-					else if (c == 'n') {
-						s.Append('\n');
-					}
-					else if (c == 'r') {
-						s.Append('\r');
-					}
-					else if (c == 't') {
-						s.Append('\t');
-					}
-					else if (c == 'u') {
-						int remainingLength = data.Length - index;
-						if (remainingLength >= 4) {
-							// parse the 32 bit hex into an integer codepoint
-							uint codePoint;
-							if (!(uint.TryParse(new string(data, index, 4),
-								System.Globalization.NumberStyles.HexNumber,
-								System.Globalization.CultureInfo.InvariantCulture, out codePoint))) {
-								return ""; //throw new JSRSFormatException()
-							}
-							// convert the integer codepoint to a unicode char and add to string
-							s.Append(char.ConvertFromUtf32((int)codePoint));
-							// skip 4 chars
-							index += 4;
-						}
-						else {
+					switch (c) {
+						case '"':
+							s.Append('"');
 							break;
-						}
+						case '\\':
+							s.Append('\\');
+							break;
+						case '/': 
+							s.Append('/');
+							break;
+						case 'b':
+							s.Append('\b');
+							break;
+						case 'f':
+							s.Append('\f');
+							break;
+						case 'n':
+							s.Append('\n');
+							break;
+						case 'r':
+							s.Append('\r');
+							break;
+						case 't':
+							s.Append('\t');
+							break;
+						case 'u':
+							if(tryParseUnicode(index, s)) {
+								index += 4;
+							}
+							else {
+								return new JSUndefined();
+							}
+							break;
 					}
-
 				}
 				else {
 					s.Append(c);
@@ -185,10 +154,10 @@ namespace Jstp.Rs {
 			}
 
 			if (!complete) {
-				return null;  // throw new JSRSFormatExceptino()
+				return new JSUndefined();  // throw new JSRSFormatExceptino()
 			}
 
-			return s.ToString();
+			return new JSString(s.ToString());
 		}
 
 		/// <summary>
@@ -196,9 +165,11 @@ namespace Jstp.Rs {
 		/// </summary>
 		/// <param name="index"></param>
 		/// <returns></returns>
-		private static object ParseObject(ref int index) {
-			Dictionary<string, object> obj = new Dictionary<string, object>();
+		private static JSValue ParseObject(ref int index) {
+			Dictionary<string, object> obj1 = new Dictionary<string, object>();
 			Token token;
+
+			JSObject obj = new JSObject();
 			
 			// Skipes "{"
 			NextToken(ref index);
@@ -206,7 +177,7 @@ namespace Jstp.Rs {
 			while (true) {
 				token = LookAhead(index);
 				if(token == Token.TUndefined) {
-					return null;  // throw new JSRSFormatException();
+					return new JSUndefined();
 				} else if(token == Token.TComma) {
 					NextToken(ref index);
 				} else if(token == Token.TCurlyClose) {
@@ -220,12 +191,11 @@ namespace Jstp.Rs {
 					// :
 					token = NextToken(ref index);
 					if(token != Token.TColon) {
-						return null; // throw new JSRSFormatException();
+						return new JSUndefined(); // throw new JSRSFormatException();
 					}
 
 					// Parses Value
-					object value = ParseValue(ref index);
-
+					JSValue value = ParseValue(ref index);
 
 					obj[key] = value;
 				}
@@ -270,8 +240,37 @@ namespace Jstp.Rs {
 		/// </summary>
 		/// <param name="index"></param>
 		/// <returns></returns>
-		private static object[] ParseArray(ref int index) {
-			NextToken(ref index);
+		private static JSValue ParseArray(ref int index) {
+			// Skip [
+			JSArray array = new JSArray();
+
+			Token prevToken = NextToken(ref index);
+
+			Token curToken = LookAhead(index);
+
+			if(curToken == Token.TBracketClose) {
+				array.Add(new JSUndefined());
+				return array;
+			}
+
+			while (true) {
+				if (curToken == Token.TComma) {
+					array.Add(new JSUndefined());
+				}
+				else {
+					array.Add(ParseValue(ref index));
+
+					curToken = NextToken(ref index);
+
+					if (curToken == Token.TBracketClose) {
+						break;
+					}
+					else if (curToken != Token.TComma) {
+						return new JSUndefined();
+					}
+				}
+
+			} 
 
 			return null;
 		}
@@ -341,6 +340,49 @@ namespace Jstp.Rs {
 			}
 
 			return Token.TUndefined;
+		}
+
+		private static string RemoveComment(string dataToParse) {
+			// TODO: remove comment and whitespaces
+			return null;
+		}
+
+		static private bool tryParseUnicode(int index, StringBuilder sb) {
+			int remainingLength = data.Length - index;
+
+			if (remainingLength >= 4) {
+
+				// Parses the 32 bit hex into an integer codepoint
+				uint codePoint;
+				if (!(uint.TryParse(new string(data, index, 4),
+					System.Globalization.NumberStyles.HexNumber,
+					System.Globalization.CultureInfo.InvariantCulture, out codePoint))) {
+					return false;
+				}
+
+				// Converts the integer codepoint to a unicode char and add to string
+				sb.Append(char.ConvertFromUtf32((int)codePoint));
+				return true;
+			}
+			else {
+				return false;
+			}
+		}
+
+		/// <summary>
+		/// Searches for the last index of the number.
+		/// </summary>
+		/// <param name="index"></param>
+		/// <returns>Last index</returns>
+		private static int getIndexOfLastDigit(int index) {
+			int lastIndex = index;
+			string numbs = "0123456789+-.eE";
+			for (; lastIndex < data.Length; lastIndex++) {
+				if (numbs.IndexOf(data[lastIndex]) == -1) {
+					break;
+				}
+			}
+			return lastIndex - 1;
 		}
 
 		/// <summary>
