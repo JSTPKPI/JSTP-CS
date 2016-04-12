@@ -1,41 +1,49 @@
 ﻿namespace Jstp.Types {
-	abstract class JSValue {
-		private JSType type;
+	/// <summary> Represent JavaScript type. </summary>
+	public abstract class JSValue {
+		/// <summary> Type of the current instance. </summary>
+		protected internal JSTypes type;
 
-		public JSType Type {
+		/// <summary> Gets type of current instance.  </summary>
+		public JSTypes Type {
 			get {
 				return type;
 			}
 		}
 
+		/// <summary> Returns true if this instance has array type; otherwise false. </summary>
 		public bool isArray() {
-			return type == JSType.JSArray;
+			return type == JSTypes.JSArray;
 		}
 
+		/// <summary> Returns true if this instance has string type; otherwise false. </summary>
 		public bool isString() {
-			return type == JSType.JSString;
+			return type == JSTypes.JSString;
 		}
 
+		/// <summary>  Returns true if this instance has number type; otherwise false. </summary>
 		public bool isNumber() {
-			return type == JSType.JSNumber;
+			return type == JSTypes.JSNumber;
 		}
 
+		/// <summary> Returns true if this instance has object type; otherwise false. </summary>
 		public bool isObject() {
-			return type == JSType.JSObject;
+			return type == JSTypes.JSObject;
 		}
 
+		/// <summary> Returns true if this instance has bool type; otherwise false. </summary>
 		public bool isBool() {
-			return type == JSType.JSBool;
+			return type == JSTypes.JSBool;
 		}
 
+		/// <summary> Returns true if this instance has null type; otherwise false. </summary>
 		public bool isNull() {
-			return type == JSType.JSNull;
+			return type == JSTypes.JSNull;
 		}
 
+		/// <summary> Returns true if this instance has undefined type; otherwise false. </summary>
 		public bool isUndefined() {
-			return type == JSType.JSUndefined;
+			return type == JSTypes.JSUndefined;
 		}
-
-
 	}
 }
