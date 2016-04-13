@@ -13,6 +13,12 @@ namespace Jstp.Types {
 			type = JSTypes.JSArray;
 		}
 
+		/// <summary> Initializes a new instance of the Jstp.Types.JSArray class using specified collection. </summary>
+		/// <param name="collection"></param>
+		public JSArray(IEnumerable<JSValue> collection) {
+			jsArray = new List<JSValue>(collection);
+		}
+
 		/// <summary> Gets or sets the element at the specified index. </summary>
 		/// <param name="i">The zero-based index of the element to get or set.</param>
 		/// <returns></returns>

@@ -1,46 +1,62 @@
-﻿using System;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System.Collections.Generic;
-using Jstp.Rs;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+
+using Jstp.Types;
+using static Jstp.Rs.JSRS;
 
 namespace JSTPTest.Record_Serialization {
 	[TestClass]
 	public class UnitTest1 {
+
+		/// <summary> Tests parse of the simple array that contains 2 strings for 1000000 times. </summary>
 		[TestMethod]
-		public void TestMethod1() {
-			string test1 = @"{
-				name: 'Marcus Aurelius', 
-				passport: 'AE127095',
-				birth: {
-					date: '1990-02-15',
-					place: 'Rome'
-				},
-				contacts: {
-					email: 'marcus@aurelius.it',
-					phone: '+380505551234'
-				}
-			}";
-			Dictionary<string, object> testRecord = null;
+		public void TestArray1() {
+			string arrayStr = @"['Marcus Aurelius','AE127095']";
+			JSValue jValue = null;
+
 			for (int i = 0; i < 1000000; i++) {
-				testRecord = (Dictionary<string, object>)JSRS.Parse(test1);
+				 jValue = Parse(arrayStr);
 			}
 
-			Console.WriteLine(testRecord);
+			Assert.IsTrue(jValue.IsArray());
 
-			Dictionary<string, object> expectedRecord = new Dictionary<string, object>();
-			Dictionary<string, object> birth = new Dictionary<string, object>();
-			Dictionary<string, object> contacts = new Dictionary<string, object>();
-			expectedRecord.Add("name", "Marcus Aurelius");
-			expectedRecord.Add("passport", "AE127095");
-			birth.Add("date", "1990-02-15");
-			birth.Add("place", "Rome");
-			expectedRecord.Add("birth", birth);
-			contacts.Add("email", "marcus@aurelius.it");
-			contacts.Add("phone", "+380505551234");
-			expectedRecord.Add("contacts", contacts);
+			JSArray actual = (JSArray)jValue;
+
+			JSArray expected = new JSArray(new JSValue[]{
+				new JSString("Marcus Aurelius"),
+				new JSString("AE127095") });
+
+			Assert.AreEqual(expected.ToString(), actual.ToString());
+		}
 
 
-			Assert.AreEqual(expectedRecord.ToString(), testRecord.ToString());
+		/// <summary> Tests parse of the nested arrays. </summary>
+		[TestMethod]
+		public void TestArray2() {
+			string testStr = @"['Marcus Aurelius','AE127095',['1990-02-15','Rome'],['Ukraine','Kiev','03056','Pobedy','37','158']]";
+			JSValue jValue = Parse(testStr);
+
+			Assert.IsTrue(jValue.IsArray());
+
+			JSArray actual = (JSArray)jValue;
+
+			JSArray expected = new JSArray(new JSValue[] {
+				new JSString("Marcus Aurelius"),
+				new JSString("AE127095"),
+				new JSArray(new JSValue[]{
+						new JSString("1990-02-15"),
+						new JSString("Rome")
+					}),
+				new JSArray(new JSValue[] {
+						new JSString("Ukraine"),
+						new JSString("Kiev"),
+						new JSString("03056"),
+						new JSString("Pobedy"),
+						new JSString("37"),
+						new JSString("158")
+					})
+				});
+
+			Assert.AreEqual(expected.ToString(), actual.ToString());
 		}
 	}
 }

@@ -18,7 +18,7 @@ namespace Jstp.Rs {
 					throw new ArgumentNullException("Data which required to be parsed is null!");
 				}
 
-				char[] data = RemoveComment(dataToParse).ToCharArray();
+				data = RemoveComment(dataToParse).ToCharArray();
 				int index = 0;
 
 				JSValue value = ParseValue(ref index);
@@ -50,6 +50,8 @@ namespace Jstp.Rs {
 					return ParseString(ref index);
 				case Token.TNumber:
 					return ParseNumber(ref index);
+				case Token.TBracketOpen:
+					return ParseArray(ref index);
 				case Token.TTrue:
 					NextToken(ref index);
 					return new JSBool(true);
@@ -265,7 +267,47 @@ namespace Jstp.Rs {
 		/// <param name="index"></param>
 		/// <returns></returns>
 		private static JSValue ParseArray(ref int index) {
-			return null;
+			JSArray array = new JSArray();
+
+			// Skip [
+			NextToken(ref index);
+
+			Token curToken = LookAhead(index);
+
+			if (curToken == Token.TBracketClose) {
+				NextToken(ref index);
+				array.Push(new JSUndefined());
+				return array;
+			}
+
+			while (true) {
+				if (index == data.Length) {
+					return new JSUndefined();
+				}
+
+				if (curToken == Token.TComma) {
+					NextToken(ref index);
+					array.Push(new JSUndefined());
+					curToken = LookAhead(index);
+				}
+				else {
+					array.Push(ParseValue(ref index));
+
+					curToken = NextToken(ref index);
+
+					if (curToken == Token.TBracketClose) {
+						break;
+					}
+					else if (curToken != Token.TComma) {
+						return new JSUndefined();
+					}
+					else {
+						curToken = LookAhead(index);
+					}
+				}
+
+			}
+			return array;
 		}
 
 		#region Util functions
@@ -297,8 +339,13 @@ namespace Jstp.Rs {
 					return Token.TCurlyOpen;
 				case '}':
 					return Token.TCurlyClose;
+				case '[':
+					return Token.TBracketOpen;
+				case ']':
+					return Token.TBracketClose;
 				case '"':
 				case '\'':
+				case '`':
 					return Token.TString;
 				case ',':
 					return Token.TComma;
@@ -346,8 +393,7 @@ namespace Jstp.Rs {
 		}
 
 		private static string RemoveComment(string dataToParse) {
-			// TODO: remove comment and whitespaces
-			return null;
+			return dataToParse;
 		}
 
 		/// <summary> Parses Unicode escape sequence. </summary>

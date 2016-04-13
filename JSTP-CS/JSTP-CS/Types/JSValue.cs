@@ -12,37 +12,37 @@
 		}
 
 		/// <summary> Returns true if this instance has array type; otherwise false. </summary>
-		public bool isArray() {
+		public bool IsArray() {
 			return type == JSTypes.JSArray;
 		}
 
 		/// <summary> Returns true if this instance has string type; otherwise false. </summary>
-		public bool isString() {
+		public bool IsString() {
 			return type == JSTypes.JSString;
 		}
 
 		/// <summary>  Returns true if this instance has number type; otherwise false. </summary>
-		public bool isNumber() {
+		public bool IsNumber() {
 			return type == JSTypes.JSNumber;
 		}
 
 		/// <summary> Returns true if this instance has object type; otherwise false. </summary>
-		public bool isObject() {
+		public bool IsObject() {
 			return type == JSTypes.JSObject;
 		}
 
 		/// <summary> Returns true if this instance has bool type; otherwise false. </summary>
-		public bool isBool() {
+		public bool IsBool() {
 			return type == JSTypes.JSBool;
 		}
 
 		/// <summary> Returns true if this instance has null type; otherwise false. </summary>
-		public bool isNull() {
+		public bool IsNull() {
 			return type == JSTypes.JSNull;
 		}
 
 		/// <summary> Returns true if this instance has undefined type; otherwise false. </summary>
-		public bool isUndefined() {
+		public bool IsUndefined() {
 			return type == JSTypes.JSUndefined;
 		}
 	}
