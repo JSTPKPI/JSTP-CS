@@ -9,6 +9,13 @@ namespace Jstp.Rs {
 	public static class JSRS {
 		private static char[] data;
 
+		/// <summary> Returns string representation of JSValue </summary>
+		/// <param name="value"></param>
+		/// <returns></returns>
+		public static string Stringify(JSValue value) {
+			return value.ToString();
+		}
+
 		/// <summary> Parses Record Seralization data. </summary>
 		/// <param name="dataToParse"></param>
 		/// <returns></returns>
@@ -18,7 +25,7 @@ namespace Jstp.Rs {
 					throw new ArgumentNullException("Data which required to be parsed is null!");
 				}
 
-				data = RemoveComment(dataToParse).ToCharArray();
+				data = RemoveComment(dataToParse);
 				int index = 0;
 
 				JSValue value = ParseValue(ref index);
@@ -28,13 +35,13 @@ namespace Jstp.Rs {
 
 			catch (ArgumentNullException ex) {
 				Console.WriteLine(ex);
+				return new JSNull();
 			}
 
 			catch (JSRSFormatException ex) {
 				Console.WriteLine(ex);
-			}
-
-			return new JSUndefined();
+				return new JSUndefined();
+			}	
 		}
 
 		/// <summary>
@@ -375,7 +382,7 @@ namespace Jstp.Rs {
 
 			if (IsTTrue(remainingLength, index)) {
 				index += 4;
-				return Token.TFalse;
+				return Token.TTrue;
 			}
 
 			if (IsTNull(remainingLength, index)) {
@@ -392,8 +399,64 @@ namespace Jstp.Rs {
 			return Token.TUndefined;
 		}
 
-		private static string RemoveComment(string dataToParse) {
-			return dataToParse;
+		/// <summary> Enum for comments mode </summary>
+		private enum CommentMode : byte {
+			Disabled = 0,
+			OneLine,
+			MultiLine
+		}
+
+		/// <summary>
+		/// Find and remove comments and whitespaces
+		/// </summary>
+		/// <param name="dataToParse"></param>
+		/// <returns></returns>
+		private static char[] RemoveComment(string dataToParse) {
+
+			StringBuilder result = new StringBuilder(dataToParse.Length);
+
+			bool stringMode = false;
+			CommentMode commentMode = CommentMode.Disabled;
+
+			for (int i = 0; i < dataToParse.Length; i++) {
+				// Checks for string start
+				if ((dataToParse[i] == '\"' || dataToParse[i] == '\'') && (i == 0 || dataToParse[i - 1] != '\\')) {
+					stringMode = !stringMode;
+				}
+
+				// If not string
+				if (!stringMode) {
+					// Checks for comment start
+					if (commentMode == CommentMode.Disabled && dataToParse[i] == '/') {
+						switch (dataToParse[i + 1]) {
+							case '/':
+								commentMode = CommentMode.OneLine;
+								break;
+							case '*':
+								commentMode = CommentMode.MultiLine;
+								break;
+						}
+					}
+
+					// Adds char to resulting string if it's not comment and whitespace
+					if (commentMode == CommentMode.Disabled && !char.IsWhiteSpace(dataToParse[i])) {
+						result.Append(dataToParse[i]);
+					}
+
+					// Checks for comment end
+					if ((commentMode == CommentMode.OneLine && (dataToParse[i] == '\n' || dataToParse[i] == '\r')) ||
+						(commentMode == CommentMode.MultiLine && dataToParse[i - 1] == '*' && dataToParse[i] == '/')) {
+
+						commentMode = CommentMode.Disabled;
+					}
+				}
+
+				else {
+					result.Append(dataToParse[i]);
+				}
+
+			}
+			return result.ToString().ToCharArray();
 		}
 
 		/// <summary> Parses Unicode escape sequence. </summary>

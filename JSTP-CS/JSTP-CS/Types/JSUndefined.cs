@@ -1,6 +1,6 @@
 ﻿namespace Jstp.Types {
 	/// <summary> Represents JavaScript undefined type. </summary>
-	public class JSUndefined: JSValue{
+	public sealed class JSUndefined: JSValue{
 
 		/// <summary> Initializes a new instance of the Jstp.Types.JSUndefined class. </summary>
 		public JSUndefined() {

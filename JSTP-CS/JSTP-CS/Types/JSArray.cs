@@ -52,7 +52,7 @@ namespace Jstp.Types {
 
 		/// <summary> Returns the string that represents current object. </summary>
 		public override string ToString() {
-			return jsArray.ToString();
+			return "[" + string.Join(",", jsArray) + "]";
 		}
 	}
 }

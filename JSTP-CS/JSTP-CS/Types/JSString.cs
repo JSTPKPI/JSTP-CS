@@ -19,7 +19,7 @@
 
 		/// <summary> Converts value of this instance to string. </summary>
 		public override string ToString() {
-			return jsString;
+			return "\'" + jsString + "\'";
 		}
 	}
 }

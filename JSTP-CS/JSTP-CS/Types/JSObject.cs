@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 
 namespace Jstp.Types {
 	/// <summary>  Represents JavaScript object type. </summary>
@@ -26,7 +27,9 @@ namespace Jstp.Types {
 
 		/// <summary> Returns the string that represents current object. </summary>
 		public override string ToString() {
-			return jsObject.ToString();
+			return "{" + 
+				string.Join(",", jsObject.Select(kv => kv.Key.ToString() + ":" + kv.Value.ToString()).ToArray()) 
+				+ "}";
 		}
 	}
 }

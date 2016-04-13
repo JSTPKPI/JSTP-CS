@@ -1,6 +1,6 @@
 ﻿namespace Jstp.Types {
 	/// <summary> Represents JavaScript bool type. </summary>
-	public class JSBool: JSValue {
+	public sealed class JSBool: JSValue {
 		private bool jsBool;
 
 		/// <summary> Gets or sets bool representation of this instance. </summary>
@@ -32,7 +32,6 @@
 		/// </summary>
 		/// <returns></returns>
 		public override string ToString() {
-			true.ToString();
 			return jsBool? "true" : "false";
 		}
 	}
