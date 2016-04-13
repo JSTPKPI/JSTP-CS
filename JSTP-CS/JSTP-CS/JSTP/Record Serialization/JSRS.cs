@@ -345,10 +345,33 @@ namespace Jstp.Rs {
 			return Token.TUndefined;
 		}
 
-		private static string RemoveComment(string dataToParse) {
-			// TODO: remove comment and whitespaces
-			return null;
-		}
+			}
+        /// <summary>
+        /// Find and remove comments and whtespaces
+        /// </summary>
+        /// <param name="dataToParse"></param>
+        /// <returns></returns>
+		private static string RemoveComment(string dataToParse)
+        {
+            bool isCommentStart = false, isValueStart = false;
+
+            char[] arr = new char[dataToParse.Length];
+            for (int i = 0; i < dataToParse.Length; i++)
+            {
+                if (dataToParse[i] == '/' || isCommentStart == true) { isCommentStart = true; continue; }
+                else
+                    arr[i] = dataToParse[i];
+            }
+            string forReturn = new string(arr);
+            for (int i = 0; i < dataToParse.Length; i++)
+            {
+                if ((dataToParse[i] == ' ') && isValueStart == false)
+                    forReturn = forReturn.Remove(i, 1).Insert(i, string.Empty);
+                if (dataToParse[i] == '"' || dataToParse[i] == '\'' || isValueStart == true)
+                    isValueStart = true;
+            }
+            return forReturn;
+        }
 
 		/// <summary> Parses Unicode escape sequence. </summary>
 		/// <param name="index"></param>
