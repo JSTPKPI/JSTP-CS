@@ -347,7 +347,7 @@ namespace Jstp.Rs {
 
 			}
         /// <summary>
-        /// Find and remove comments and whtespaces
+        /// Find and remove comments and whitespaces
         /// </summary>
         /// <param name="dataToParse"></param>
         /// <returns></returns>
