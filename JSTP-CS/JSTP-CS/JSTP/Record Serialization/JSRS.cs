@@ -194,7 +194,6 @@ namespace Jstp.Rs {
 		/// <param name="index"></param>
 		/// <returns></returns>
 		private static JSValue ParseObject(ref int index) {
-			Dictionary<string, object> obj1 = new Dictionary<string, object>();
 			Token token;
 
 			JSObject obj = new JSObject();
@@ -390,13 +389,15 @@ namespace Jstp.Rs {
 				return Token.TNull;
 			}
 
-			// TODO: implement key token check
-			if (char.IsLetter(data[index])) {
+			if(IsTUndefined(remainingLength, index)) {
+				index += 9;
+			}
 
+			if (char.IsLetter(data[index])) {
 				return Token.TKey;
 			}
 
-			return Token.TUndefined;
+			return Token.TNone;
 		}
 
 		/// <summary> Enum for comments mode </summary>
@@ -552,6 +553,24 @@ namespace Jstp.Rs {
 					data[index + 1] == 'u' &&
 					data[index + 2] == 'l' &&
 					data[index + 3] == 'l') {
+					return true;
+				}
+			}
+
+			return false;
+		}
+
+		private static bool IsTUndefined(int remainingLength, int index) {
+			if (remainingLength >= 9) {
+				if (data[index] == 'u' &&
+					data[index + 1] == 'n' &&
+					data[index + 2] == 'd' &&
+					data[index + 3] == 'e' &&
+					data[index + 4] == 'f' &&
+					data[index + 5] == 'i' &&
+					data[index + 6] == 'n' &&
+					data[index + 7] == 'e' &&
+					data[index + 8] == 'd') {
 					return true;
 				}
 			}

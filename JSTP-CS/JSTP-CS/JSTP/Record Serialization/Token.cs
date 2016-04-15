@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Jstp.Rs {
+﻿namespace Jstp.Rs {
 	enum Token : byte {
 		TString		  = 0,
 		TKey		  = 1,
@@ -19,6 +13,7 @@ namespace Jstp.Rs {
 		TComma		  = 10,
 		TNull		  = 11,
 		TComment	  = 12,
-		TUndefined	  = 13
+		TUndefined	  = 13,
+		TNone		  = 14
 	}
 }
