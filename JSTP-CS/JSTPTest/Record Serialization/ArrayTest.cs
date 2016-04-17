@@ -33,7 +33,12 @@ namespace JSTPTest.Record_Serialization {
 		[TestMethod]
 		public void TestArray2() {
 			string testStr = @"['Marcus Aurelius','AE127095',['1990-02-15','Rome'],['Ukraine','Kiev','03056','Pobedy','37','158']]";
-			JSValue jValue = Parse(testStr);
+
+			JSValue jValue = null;
+			for (int i = 0; i < 1000000; i++) {
+				jValue = Parse(testStr);
+			}
+			
 
 			Assert.IsTrue(jValue.IsArray());
 

@@ -5,6 +5,10 @@ using System.Text;
 using Jstp.Types;
 
 namespace Jstp.Rs {
+
+	delegate JSValue ParseDelegate(ref int index);
+	delegate Token SpecialTokenDelegate(int remainingLength, ref int index);
+
 	/// <summary> Static class for parsing Record Serialization. </summary>
 	public static class JSRS {
 		private static char[] data;
@@ -43,149 +47,18 @@ namespace Jstp.Rs {
 				return new JSUndefined();
 			}	
 		}
-
+		//+
 		/// <summary>
 		/// Determines next token type and parses it.
 		/// </summary>
 		/// <param name="index"></param>
 		/// <returns></returns>
 		private static JSValue ParseValue(ref int index) {
-			switch (LookAhead(index)) {
-				case Token.TCurlyOpen:
-					return ParseObject(ref index);
-				case Token.TString:
-					return ParseString(ref index);
-				case Token.TNumber:
-					return ParseNumber(ref index);
-				case Token.TBracketOpen:
-					return ParseArray(ref index);
-				case Token.TTrue:
-					NextToken(ref index);
-					return new JSBool(true);
-				case Token.TFalse:
-					NextToken(ref index);
-					return new JSBool(false);
-				case Token.TNull:
-					NextToken(ref index);
-					return new JSNull();
-				case Token.TUndefined:
-					return new JSUndefined();
-			}
-
-			return new JSUndefined();
-		}
-
-		/// <summary>
-		/// Parses data to JSNumber.
-		/// </summary>
-		/// <param name="index"></param>
-		/// <returns></returns>
-		private static JSValue ParseNumber(ref int index) {
-
-			int lastIndex = getIndexOfLastDigit(index);
-			int numberLength = lastIndex - index + 1;
-
-			double number;
-
-			if (double.TryParse(new string(data, index, numberLength),
-				System.Globalization.NumberStyles.Any,
-				System.Globalization.CultureInfo.InvariantCulture,
-				out number)) {
-
-				index += numberLength;
-				return new JSNumber(number);
-			}
-
-			else {
+			ParseDelegate pd;
+			if(!parseSwitcher.TryGetValue(LookAhead(index), out pd)) {
 				throw new JSRSFormatException();
 			}
-
-		}
-
-		/// <summary>
-		/// Parses data to JSString
-		/// </summary>
-		/// <param name="index"></param>
-		/// <returns></returns>
-		private static JSValue ParseString(ref int index) {
-			StringBuilder s = new StringBuilder(20);
-			char c;
-
-			char stringStart = data[index++];
-
-			bool complete = false;
-			while (!complete) {
-
-				if (index == data.Length) {
-					break;
-				}
-
-				c = data[index++];
-
-				// end of the string
-				if (c == stringStart) {
-					complete = true;
-					break;
-				}
-
-				#region Control character
-				else if (c == '\\') {
-
-					if (index == data.Length) {
-						break;
-					}
-
-					c = data[index++];
-					switch (c) {
-						case '"':
-							s.Append('"');
-							break;
-						case '\\':
-							s.Append('\\');
-							break;
-						case '/':
-							s.Append('/');
-							break;
-						case 'b':
-							s.Append('\b');
-							break;
-						case 'f':
-							s.Append('\f');
-							break;
-						case 'n':
-							s.Append('\n');
-							break;
-						case 'r':
-							s.Append('\r');
-							break;
-						case 't':
-							s.Append('\t');
-							break;
-						case 'u':
-							// Unicode characters
-							if (tryParseUnicode(index, s)) {
-								index += 4;
-							}
-							else {
-								throw new JSRSFormatException();
-							}
-							break;
-					}
-				}
-				#endregion
-
-				// any other character
-				else {
-					s.Append(c);
-				}
-
-			}
-
-			if (!complete) {
-				throw new JSRSFormatException();
-			}
-
-			return new JSString(s.ToString());
+			return pd(ref index);
 		}
 
 		/// <summary>
@@ -221,7 +94,7 @@ namespace Jstp.Rs {
 					// :
 					token = NextToken(ref index);
 					if (token != Token.TColon) {
-						return new JSUndefined(); // throw new JSRSFormatException();
+						throw new JSRSFormatException();
 					}
 
 					// Parses Value
@@ -230,6 +103,176 @@ namespace Jstp.Rs {
 					obj[key] = value;
 				}
 			}
+		}
+
+		/// <summary>
+		/// Parses data to JSArray
+		/// </summary>
+		/// <param name="index"></param>
+		/// <returns></returns>
+		private static JSValue ParseArray(ref int index) {
+			JSArray array = new JSArray();
+
+			// Skip [
+			NextToken(ref index);
+
+			Token curToken = LookAhead(index);
+
+			if (curToken == Token.TBracketClose) {
+				NextToken(ref index);
+				array.Push(new JSUndefined());
+				return array;
+			}
+
+			while (true) {
+				if (index == data.Length) {
+					return new JSUndefined();
+				}
+
+				if (curToken == Token.TBracketClose) {
+					array.Push(new JSUndefined());
+					break;
+				}
+
+				if (curToken == Token.TComma) {
+					NextToken(ref index);
+					array.Push(new JSUndefined());
+					curToken = LookAhead(index);
+				}
+				else {
+					array.Push(ParseValue(ref index));
+
+					curToken = NextToken(ref index);
+
+					if (curToken == Token.TBracketClose) {
+						break;
+					}
+
+					else if (curToken != Token.TComma) {
+						return new JSUndefined();
+					}
+					else {
+						curToken = LookAhead(index);
+					}
+				}
+
+			}
+			return array;
+		}
+
+		//+-
+		/// <summary>
+		/// Parses data to JSString
+		/// </summary>
+		/// <param name="index"></param>
+		/// <returns></returns>
+		private static JSValue ParseString(ref int index) {
+			StringBuilder s = new StringBuilder(20);
+			char c;
+
+			char stringStart = data[index++];
+
+			bool complete = false;
+			while (!complete) {
+
+				if (index == data.Length) {
+					break;
+				}
+
+				c = data[index++];
+
+				// end of the string
+				if (c == stringStart) {
+					complete = true;
+					break;
+				}
+
+				#region Control character
+				else if (c == '\\') {
+
+					if (index == data.Length) {
+						break;
+					}
+
+					c = data[index++];
+					char control;
+
+					if (contorlCharSwitcher.TryGetValue(c, out control)) {
+						s.Append(control);
+					}
+					else if(c == 'u'){
+						s.Append(ParseUnicode(index));
+					}
+					else {
+						throw new JSRSFormatException();
+					}
+				}
+				#endregion
+
+				// any other character
+				else {
+					s.Append(c);
+				}
+
+			}
+
+			if (!complete) {
+				throw new JSRSFormatException();
+			}
+
+			return new JSString(s.ToString());
+		}
+
+		//+
+		/// <summary>
+		/// Parses data to JSNumber.
+		/// </summary>
+		/// <param name="index"></param>
+		/// <returns></returns>
+		private static JSValue ParseNumber(ref int index) {
+
+			int lastIndex = getIndexOfLastDigit(index);
+			int numberLength = lastIndex - index + 1;
+
+			double number;
+
+			if (double.TryParse(new string(data, index, numberLength),
+				System.Globalization.NumberStyles.Any,
+				System.Globalization.CultureInfo.InvariantCulture,
+				out number)) {
+
+				index += numberLength;
+				return new JSNumber(number);
+			}
+
+			else {
+				throw new JSRSFormatException();
+			}
+
+		}
+
+		//+
+		private static JSValue ParseTrue(ref int index) {
+			index += 4;
+			return new JSBool(true);
+		}
+
+		//+
+		private static JSValue ParseFalse(ref int index) {
+			index += 5;
+			return new JSBool(false);
+		}
+
+		//+
+		private static JSValue ParseNull(ref int index) {
+			index += 4;
+			return new JSNull();
+		}
+
+		//+
+		private static JSValue ParseUndefined(ref int index) {
+			index += 9;
+			return new JSUndefined();
 		}
 
 		/// <summary>
@@ -267,56 +310,65 @@ namespace Jstp.Rs {
 			}
 		}
 
-		/// <summary>
-		/// Parses data to JSArray
-		/// </summary>
-		/// <param name="index"></param>
-		/// <returns></returns>
-		private static JSValue ParseArray(ref int index) {
-			JSArray array = new JSArray();
-
-			// Skip [
-			NextToken(ref index);
-
-			Token curToken = LookAhead(index);
-
-			if (curToken == Token.TBracketClose) {
-				NextToken(ref index);
-				array.Push(new JSUndefined());
-				return array;
-			}
-
-			while (true) {
-				if (index == data.Length) {
-					return new JSUndefined();
-				}
-
-				if (curToken == Token.TComma) {
-					NextToken(ref index);
-					array.Push(new JSUndefined());
-					curToken = LookAhead(index);
-				}
-				else {
-					array.Push(ParseValue(ref index));
-
-					curToken = NextToken(ref index);
-
-					if (curToken == Token.TBracketClose) {
-						break;
-					}
-					else if (curToken != Token.TComma) {
-						return new JSUndefined();
-					}
-					else {
-						curToken = LookAhead(index);
-					}
-				}
-
-			}
-			return array;
-		}
-
 		#region Util functions
+
+		#region Switchers
+		private static Dictionary<Token, ParseDelegate> parseSwitcher = new Dictionary<Token, ParseDelegate> { 
+			{ Token.TCurlyOpen,		new ParseDelegate(ParseObject)	  },
+			{ Token.TBracketOpen,	new ParseDelegate(ParseArray)	  },
+			{ Token.TString,		new ParseDelegate(ParseString)	  },
+			{ Token.TNumber,		new ParseDelegate(ParseNumber)	  },
+			{ Token.TTrue,			new ParseDelegate(ParseTrue)	  },
+			{ Token.TFalse,			new ParseDelegate(ParseFalse)	  },
+			{ Token.TNull,			new ParseDelegate(ParseNull)	  },
+			{ Token.TUndefined,		new ParseDelegate(ParseUndefined) },
+		};
+
+		private static Dictionary<char, char> contorlCharSwitcher = new Dictionary<char, char> {
+			{ '"' , '"'  },
+			{ '\\', '\\' },
+			{ '/' , '/'  },
+			{ 'b' , '\b' },
+			{ 'f' , '\n' },
+			{ 'n' , '\n' },
+			{ 'r' , '\r' },
+			{ 't' , '\t' }
+		};
+
+		private static Dictionary<char, Token> tokenSwitcher = new Dictionary<char, Token> {
+			{ '{', Token.TCurlyOpen		},
+			{ '}', Token.TCurlyClose	},
+			{ '[', Token.TBracketOpen	},
+			{ ']', Token.TBracketClose	},
+
+			{ '"' , Token.TString },
+			{ '\'', Token.TString },
+			{ '`' , Token.TString },
+
+			{ ',', Token.TComma },
+			{ ':', Token.TColon },
+
+			{ '-', Token.TNumber },
+			{ '0', Token.TNumber },
+			{ '1', Token.TNumber },
+			{ '2', Token.TNumber },
+			{ '3', Token.TNumber },
+			{ '4', Token.TNumber },
+			{ '5', Token.TNumber },
+			{ '6', Token.TNumber },
+			{ '7', Token.TNumber },
+			{ '8', Token.TNumber },
+			{ '9', Token.TNumber }
+		};
+
+		private static Dictionary<char, SpecialTokenDelegate> specialTokenSwither = new Dictionary<char, SpecialTokenDelegate> {
+			{'t', new SpecialTokenDelegate(IsTTrue) },
+			{'f', new SpecialTokenDelegate(IsTFalse) },
+			{'n', new SpecialTokenDelegate(IsTNull) },
+			{'u', new SpecialTokenDelegate(IsTUndefined) }
+		};
+		#endregion
+
 
 		/// <summary>
 		/// Checks next token without moving index(cursor).
@@ -327,6 +379,41 @@ namespace Jstp.Rs {
 			int saveIndex = index;
 			return NextToken(ref saveIndex);
 		}
+
+
+		//index++;
+
+		//switch (c) {
+		//	case '{':
+		//		return Token.TCurlyOpen;
+		//	case '}':
+		//		return Token.TCurlyClose;
+		//	case '[':
+		//		return Token.TBracketOpen;
+		//	case ']':
+		//		return Token.TBracketClose;
+		//	case '"':
+		//	case '\'':
+		//	case '`':
+		//		return Token.TString;
+		//	case ',':
+		//		return Token.TComma;
+		//	case '0':
+		//	case '1':
+		//	case '2':
+		//	case '3':
+		//	case '4':
+		//	case '5':
+		//	case '6':
+		//	case '7':
+		//	case '8':
+		//	case '9':
+		//	case '-':
+		//		return Token.TNumber;
+		//	case ':':
+		//		return Token.TColon;
+		//}
+		//index--;
 
 		/// <summary>
 		/// Checks next token.
@@ -339,60 +426,22 @@ namespace Jstp.Rs {
 				return Token.TUndefined;
 
 			char c = data[index];
-			index++;
-			switch (c) {
-				case '{':
-					return Token.TCurlyOpen;
-				case '}':
-					return Token.TCurlyClose;
-				case '[':
-					return Token.TBracketOpen;
-				case ']':
-					return Token.TBracketClose;
-				case '"':
-				case '\'':
-				case '`':
-					return Token.TString;
-				case ',':
-					return Token.TComma;
-				case '0':
-				case '1':
-				case '2':
-				case '3':
-				case '4':
-				case '5':
-				case '6':
-				case '7':
-				case '8':
-				case '9':
-				case '-':
-					return Token.TNumber;
-				case ':':
-					return Token.TColon;
+			Token token;
+			if(tokenSwitcher.TryGetValue(c, out token)) {
+				index++;
+				return token;
 			}
-			index--;
 
 			int remainingLength = data.Length - index;
 
-			if (IsTFalse(remainingLength, index)) {
-				index += 5;
-				return Token.TFalse;
+			SpecialTokenDelegate sp;
+			if(specialTokenSwither.TryGetValue(c, out sp)) {
+				Token special = sp(remainingLength, ref index);
+				if(special != Token.TNone) {
+					return special; 
+				}
 			}
-
-			if (IsTTrue(remainingLength, index)) {
-				index += 4;
-				return Token.TTrue;
-			}
-
-			if (IsTNull(remainingLength, index)) {
-				index += 4;
-				return Token.TNull;
-			}
-
-			if(IsTUndefined(remainingLength, index)) {
-				index += 9;
-			}
-
+			
 			if (char.IsLetter(data[index])) {
 				return Token.TKey;
 			}
@@ -464,7 +513,7 @@ namespace Jstp.Rs {
 		/// <param name="index"></param>
 		/// <param name="sb"></param>
 		/// <returns> Returns true if parse was successful</returns>
-		static private bool tryParseUnicode(int index, StringBuilder sb) {
+		static private string ParseUnicode(int index) {
 			int remainingLength = data.Length - index;
 
 			if (remainingLength >= 4) {
@@ -474,15 +523,14 @@ namespace Jstp.Rs {
 				if (!(uint.TryParse(new string(data, index, 4),
 					System.Globalization.NumberStyles.HexNumber,
 					System.Globalization.CultureInfo.InvariantCulture, out codePoint))) {
-					return false;
+					throw new JSRSFormatException();
 				}
 
 				// Converts the integer codepoint to a unicode char and add to string
-				sb.Append(char.ConvertFromUtf32((int)codePoint));
-				return true;
+				return char.ConvertFromUtf32((int)codePoint);
 			}
 			else {
-				return false;
+				throw new JSRSFormatException();
 			}
 		}
 
@@ -507,19 +555,20 @@ namespace Jstp.Rs {
 		/// </summary>
 		/// <param name="remainingLength"></param>
 		/// <param name="index"></param>
-		/// <returns></returns>
-		private static bool IsTFalse(int remainingLength, int index) {
+		/// <returns>Token.TFalse if next token false; TNone otherwise.</returns>
+		private static Token IsTFalse(int remainingLength, ref int index) {
 			if (remainingLength >= 5) {
 				if (data[index] == 'f' &&
 					data[index + 1] == 'a' &&
 					data[index + 2] == 'l' &&
 					data[index + 3] == 's' &&
 					data[index + 4] == 'e') {
-					return true;
+					index += 5;
+					return Token.TFalse;
 				}
 			}
 
-			return false;
+			return Token.TNone;
 		}
 
 		/// <summary>
@@ -527,18 +576,19 @@ namespace Jstp.Rs {
 		/// </summary>
 		/// <param name="remainingLength"></param>
 		/// <param name="index"></param>
-		/// <returns></returns>
-		private static bool IsTTrue(int remainingLength, int index) {
+		/// <returns>Token.TTrue if next token true; TNone otherwise.</returns>
+		private static Token IsTTrue(int remainingLength, ref int index) {
 			if (remainingLength >= 4) {
 				if (data[index] == 't' &&
 					data[index + 1] == 'r' &&
 					data[index + 2] == 'u' &&
 					data[index + 3] == 'e') {
-					return true;
+					index += 4;
+					return Token.TTrue;
 				}
 			}
 
-			return false;
+			return Token.TNone;
 		}
 
 		/// <summary>
@@ -546,21 +596,22 @@ namespace Jstp.Rs {
 		/// </summary>
 		/// <param name="remainingLength"></param>
 		/// <param name="index"></param>
-		/// <returns></returns>
-		private static bool IsTNull(int remainingLength, int index) {
+		/// <returns>Token.TNull if next token null; TNone otherwise.</returns>
+		private static Token IsTNull(int remainingLength, ref int index) {
 			if (remainingLength >= 4) {
 				if (data[index] == 'n' &&
 					data[index + 1] == 'u' &&
 					data[index + 2] == 'l' &&
 					data[index + 3] == 'l') {
-					return true;
+					index += 4;
+					return Token.TNull;
 				}
 			}
 
-			return false;
+			return Token.TNone;
 		}
 
-		private static bool IsTUndefined(int remainingLength, int index) {
+		private static Token IsTUndefined(int remainingLength, ref int index) {
 			if (remainingLength >= 9) {
 				if (data[index] == 'u' &&
 					data[index + 1] == 'n' &&
@@ -571,13 +622,14 @@ namespace Jstp.Rs {
 					data[index + 6] == 'n' &&
 					data[index + 7] == 'e' &&
 					data[index + 8] == 'd') {
-					return true;
+					index += 9;
+					return Token.TUndefined;
 				}
 			}
 
-			return false;
+			return Token.TNone;
 		}
-
+		
 		#endregion
 	}
 }
