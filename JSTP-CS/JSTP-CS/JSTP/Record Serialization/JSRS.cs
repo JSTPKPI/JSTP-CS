@@ -35,12 +35,12 @@ namespace Jstp.Rs {
 
 			catch (ArgumentNullException ex) {
 				Console.WriteLine(ex);
-				return new JSNull();
+				return JSNull.Null;
 			}
 
 			catch (JSRSFormatException ex) {
 				Console.WriteLine(ex);
-				return new JSUndefined();
+				return JSUndefined.Undefined;
 			}	
 		}
 
@@ -67,12 +67,12 @@ namespace Jstp.Rs {
 					return new JSBool(false);
 				case Token.TNull:
 					NextToken(ref index);
-					return new JSNull();
+					return JSNull.Null;
 				case Token.TUndefined:
-					return new JSUndefined();
+					return JSUndefined.Undefined;
 			}
 
-			return new JSUndefined();
+			return JSUndefined.Undefined;
 		}
 
 		/// <summary>
@@ -204,7 +204,7 @@ namespace Jstp.Rs {
 			while (true) {
 				token = LookAhead(index);
 				if (token == Token.TUndefined) {
-					return new JSUndefined();
+					return JSUndefined.Undefined;
 				}
 				else if (token == Token.TComma) {
 					NextToken(ref index);
@@ -221,7 +221,7 @@ namespace Jstp.Rs {
 					// :
 					token = NextToken(ref index);
 					if (token != Token.TColon) {
-						return new JSUndefined(); // throw new JSRSFormatException();
+						return JSUndefined.Undefined; // throw new JSRSFormatException();
 					}
 
 					// Parses Value
@@ -282,18 +282,18 @@ namespace Jstp.Rs {
 
 			if (curToken == Token.TBracketClose) {
 				NextToken(ref index);
-				array.Push(new JSUndefined());
+				array.Push(JSUndefined.Undefined);
 				return array;
 			}
 
 			while (true) {
 				if (index == data.Length) {
-					return new JSUndefined();
+					return JSUndefined.Undefined;
 				}
 
 				if (curToken == Token.TComma) {
 					NextToken(ref index);
-					array.Push(new JSUndefined());
+					array.Push(JSUndefined.Undefined);
 					curToken = LookAhead(index);
 				}
 				else {
@@ -305,7 +305,7 @@ namespace Jstp.Rs {
 						break;
 					}
 					else if (curToken != Token.TComma) {
-						return new JSUndefined();
+						return JSUndefined.Undefined;
 					}
 					else {
 						curToken = LookAhead(index);
