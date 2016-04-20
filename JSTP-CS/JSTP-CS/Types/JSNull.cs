@@ -3,8 +3,16 @@
 	public sealed class JSNull: JSValue {
 
 		/// <summary> Initializes a new instance of the Jstp.Types.JSNull class. </summary>
-		public JSNull() {
+		private JSNull() {
 			type = JSTypes.JSNull;
+		}
+
+		private static readonly JSNull nullValue = new JSNull ();
+
+		public static JSNull Null {
+			get {
+				return nullValue;
+			}
 		}
 
 		/// <summary> Returns "null" string. </summary>
