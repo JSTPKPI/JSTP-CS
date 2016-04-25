@@ -18,7 +18,7 @@ namespace Jstp.Types {
 		/// <returns></returns>
 		public JSValue this[string key] {
 			get {
-				return (jsObject.ContainsKey(key)) ? jsObject[key] : (new JSUndefined());
+				return (jsObject.ContainsKey(key)) ? jsObject[key] : (JSUndefined.Undefined);
 			}
 			set {
 				jsObject[key] = value;

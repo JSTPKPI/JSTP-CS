@@ -24,13 +24,13 @@ namespace Jstp.Types {
 		/// <returns></returns>
 		public JSValue this[int i] {
 			get {
-				return (i >= 0 && i < jsArray.Count) ? jsArray[i] : new JSUndefined();
+				return (i >= 0 && i < jsArray.Count) ? jsArray[i] : JSUndefined.Undefined;
 			}
 			set {
 				if (i > 0) {
 					if( i > jsArray.Count) {
 						while (jsArray.Count < i) {
-							jsArray.Add(new JSUndefined());
+							jsArray.Add(JSUndefined.Undefined);
 						}
 
 						jsArray.Add(value);
